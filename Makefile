@@ -1,4 +1,5 @@
-IMAGE?=radanalyticsio/spark-operator
+IMAGE?=radanalyticsio-spark-operator
+REPO?=quay.io/eformat
 
 .PHONY: build
 build: package image-build
@@ -18,7 +19,7 @@ package:
 	# install abstract-operator in m2 cache
 	MAVEN_OPTS="-Djansi.passthrough=true -Dplexus.logger.type=ansi $(MAVEN_OPTS)" ./mvnw clean install -f abstract-operator/pom.xml -DskipTests
 	# build uberjar for spark-operator
-	MAVEN_OPTS="-Djansi.passthrough=true -Dplexus.logger.type=ansi $(MAVEN_OPTS)" ./mvnw clean package -f spark-operator/pom.xml -DskipTests
+	MAVEN_OPTS="-Djansi.passthrough=true -Dplexus.logger.type=ansi $(MAVEN_OPTS)" ./mvnw clean package -Dquarkus.package.type=uber-jar -f spark-operator/pom.xml -DskipTests
 
 .PHONY: test
 test:
@@ -26,8 +27,8 @@ test:
 
 .PHONY: image-build
 image-build:
-	docker build -t $(IMAGE):ubi -f Dockerfile.ubi .
-	docker tag $(IMAGE):ubi $(IMAGE):latest
+	podman build -t $(IMAGE):ubi -f Dockerfile.ubi .
+	podman tag $(IMAGE):ubi $(REPO)/$(IMAGE):latest
 
 .PHONY: image-build-alpine
 image-build-alpine:
@@ -44,9 +45,7 @@ image-publish-alpine: image-build-alpine
 
 .PHONY: image-publish
 image-publish: image-build
-	docker tag $(IMAGE):ubi $(IMAGE):`git rev-parse --short=8 HEAD`-ubi
-	docker tag $(IMAGE):ubi $(IMAGE):latest-ubi
-	docker push $(IMAGE):latest
+	podman push $(REPO)/$(IMAGE):latest
 
 .PHONY: image-publish-all
 image-publish-all: build-travis image-build-all image-publish image-publish-alpine
